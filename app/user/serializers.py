@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model, authenticate
-from rest_framework import serializers
 from django.utils.translation import ungettext_lazy as _
+from rest_framework import serializers
+
 
 class UserSerializer(serializers.ModelSerializer):
     """SERIALIZER FOR THE USER OBJECT"""
@@ -13,6 +14,16 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """CREATE A NEW USER WITH ENCRYPTED PASSWORD AND RETURN IT"""
         return get_user_model().objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().update(instance, validated_data)
+
+        if password:
+            user.set_password(password)
+            user.save()
+
+        return user
 
 
 class AuthTokenSerializer(serializers.Serializer):
