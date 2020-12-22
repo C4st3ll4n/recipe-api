@@ -1,7 +1,9 @@
 import time
+
+from django.core.management.base import BaseCommand
 from django.db import connections
 from django.db.utils import OperationalError
-from django.core.management.base import BaseCommand
+
 
 class Command(BaseCommand):
     """DJANGO COMAND TO PAUSE EXEC UNTIL DB IS READY"""
@@ -16,4 +18,3 @@ class Command(BaseCommand):
                 self.stdout.write("DB isn't ready, waiting 1 sec..")
                 time.sleep(1)
         self.stdout.write(self.style.SUCCESS("DB IS READY !"))
-

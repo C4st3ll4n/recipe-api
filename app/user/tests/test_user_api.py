@@ -73,7 +73,8 @@ class PrivateUserAPITest(TestCase):
     """TEST API ENDPOINTS THAT NEED AUTH"""
 
     def setUp(self) -> None:
-        self.user = create_user(email='teste@henrique.com', password='testpass', name="Pedro Testes")
+        self.user = create_user(email='teste@henrique.com',
+                                password='testpass', name="Pedro Testes")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -100,4 +101,3 @@ class PrivateUserAPITest(TestCase):
         self.assertEqual(self.user.name, payload['name'])
         self.assertTrue(self.user.check_password(payload['password']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-
