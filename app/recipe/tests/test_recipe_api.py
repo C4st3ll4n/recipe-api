@@ -1,5 +1,6 @@
-import tempfile
 import os
+import tempfile
+
 from PIL import Image
 from core.models import Recipe, Tag, Ingredient
 from django.contrib.auth import get_user_model
@@ -218,6 +219,64 @@ class PrivateRecipeApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data, serializer.data)
+
+    def test_filter_recipe_by_tag(self):
+        rcp1 = sample_recipe(self.user, title="Açai com granola")
+        rcp2 = sample_recipe(self.user, title="Suco de cupuaçu")
+
+        rcp3 = sample_recipe(self.user, title="Maniçoba")
+
+        tag1 = sample_tag(self.user, name="Paraense")
+        tag2 = sample_tag(self.user, name="Suco")
+
+        rcp1.tags.add(tag1)
+        rcp2.tags.add(tag2)
+
+        res = self.client.get(
+            RECIPE_URL,
+            {
+                'tags': f"{tag1.id}, {tag2.id}"
+            }
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        serializer1 = RecipeSerializer(rcp1)
+        serializer2 = RecipeSerializer(rcp2)
+        serializer3 = RecipeSerializer(rcp3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_recipe_by_ingredient(self):
+        rcp1 = sample_recipe(self.user, title="Açai puro")
+        rcp2 = sample_recipe(self.user, title="Suco de manga")
+
+        rcp3 = sample_recipe(self.user, title="Vatápa")
+
+        ingredient1 = sample_ingredient(self.user, name="Açai")
+        ingredient2 = sample_ingredient(self.user, name="Manga")
+
+        rcp1.ingredients.add(ingredient1)
+        rcp2.ingredients.add(ingredient2)
+
+        res = self.client.get(
+            RECIPE_URL,
+            {
+                'ingredients': f'{ingredient1.id}, {ingredient2.id}'
+            }
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        serializer1 = RecipeSerializer(rcp1)
+        serializer2 = RecipeSerializer(rcp2)
+        serializer3 = RecipeSerializer(rcp3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
 
 
 class RecipeImageUploadTest(TestCase):
