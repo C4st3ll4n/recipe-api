@@ -1,3 +1,6 @@
+import tempfile
+import os
+from PIL import Image
 from core.models import Recipe, Tag, Ingredient
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -7,6 +10,11 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 RECIPE_URL = reverse("recipe:recipe-list")
+
+
+def image_upload_url(recipe_id):
+    """RETURN URL FOR RECIPE IMAGE"""
+    return reverse("recipe:recipe-upload-image", args=[recipe_id])
 
 
 def sample_recipe(user, **params):
@@ -210,3 +218,40 @@ class PrivateRecipeApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data, serializer.data)
+
+
+class RecipeImageUploadTest(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            "p13dr0h@teste.com",
+            "p1p31p31p3p13p1p31"
+        )
+        self.client.force_authenticate(self.user)
+        self.recipe = sample_recipe(self.user)
+
+    def tearDown(self) -> None:
+        """REMOVE TEMP FILES"""
+        self.recipe.img.delete()
+
+    def test_upload_recipe_img(self):
+        url = image_upload_url(self.recipe.id)
+
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format='JPEG')
+            ntf.seek(0)
+
+            res = self.client.post(url, {'img': ntf}, format='multipart')
+
+        self.recipe.refresh_from_db()
+        #   print(f"\n{res.data}\n")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('img', res.data)
+        self.assertTrue(os.path.exists(self.recipe.img.path))
+
+    def test_img_upload_fail(self):
+        url = image_upload_url(self.recipe.id)
+        res = self.client.post(url, {'img': 'not a img'}, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
