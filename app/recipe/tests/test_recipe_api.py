@@ -125,7 +125,7 @@ class PrivateRecipeApiTest(TestCase):
         recipe_payload = {
             'title': "Thai prwan red curry",
             'ingredients': [ingredient1.id, ingredient2.id],
-            'tags':[tag.id],
+            'tags': [tag.id],
             'time_minutes': 20,
             'price': 5.00
         }
@@ -139,6 +139,59 @@ class PrivateRecipeApiTest(TestCase):
 
         self.assertIn(ingredient1, ingredients)
         self.assertIn(ingredient2, ingredients)
+
+    def test_partial_update_recipe(self):
+        """TEST UPDATE A RECIPE WITH PATCH"""
+
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(self.user))
+
+        new_tag = sample_tag(self.user, name='Curry')
+
+        recipe_payload = {
+            "title": "Chiken tikka",
+            'tags': [new_tag.id]
+        }
+
+        url = detail_url(recipe.id)
+        res = self.client.patch(url, recipe_payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        recipe.refresh_from_db()
+
+        self.assertEqual(recipe.title, recipe_payload['title'])
+        self.assertEqual(recipe.tags.count(), 1)
+
+        tags = Tag.objects.all()
+        self.assertIn(new_tag, tags)
+
+    def test_full_update_recipe(self):
+        """TEST UPDATE RECIPE WITH PUT"""
+
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(self.user))
+
+        recipe_payload = {
+            "title": "Spaghetti carbonara",
+            'time_minutes': 25,
+            'price': 5.0,
+            'tags': []
+        }
+
+        url = detail_url(recipe.id)
+        res = self.client.put(url, recipe_payload)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        recipe.refresh_from_db()
+
+        self.assertEqual(recipe.title, recipe_payload['title'])
+        self.assertEqual(recipe.time_minutes, recipe_payload['time_minutes'])
+        self.assertEqual(recipe.price, recipe_payload['price'])
+        self.assertEqual(recipe.tags.count(), 0)
+
+        tags = Tag.objects.all()
+        self.assertEqual(len(tags), 1)
 
     def test_recipe_limited_to_user(self):
         user2 = get_user_model().objects.create_user(
